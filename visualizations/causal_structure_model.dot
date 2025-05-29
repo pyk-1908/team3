@@ -1,0 +1,35 @@
+strict digraph {
+Year;
+"Insurance Provider";
+Quarter;
+Members;
+"Insured people";
+"Additional contribution rate in %";
+"Krankenkasse ( statutory insurance provider)";
+"Risikofaktor (risk factor)";
+"RF-Entwicklung im Vgl zum Vorjahr (risk factor development in comparision to the previous year)";
+"Regionalität (regionality)";
+"Regionale Verteilung (regionality distribution) ";
+"Jahr (year)";
+Year -> Members [origin=learned, weight=28.97823057374368];
+Year -> "Insured people" [origin=learned, weight=30.514126105717096];
+Year -> "RF-Entwicklung im Vgl zum Vorjahr (risk factor development in comparision to the previous year)" [origin=learned, weight="-0.15210160819720567"];
+Year -> "Jahr (year)" [origin=learned, weight="-14.503416370326468"];
+"Insurance Provider" -> Members [origin=learned, weight=4.649137963044757];
+"Insurance Provider" -> "Insured people" [origin=learned, weight="-5.085944200422888"];
+"Insurance Provider" -> "RF-Entwicklung im Vgl zum Vorjahr (risk factor development in comparision to the previous year)" [origin=learned, weight="-3.9986099628784086"];
+Members -> "Insured people" [origin=learned, weight=1.2111412519152895];
+"Krankenkasse ( statutory insurance provider)" -> Members [origin=learned, weight=4.649022359957828];
+"Krankenkasse ( statutory insurance provider)" -> "Insured people" [origin=learned, weight="-5.085879156322784"];
+"Krankenkasse ( statutory insurance provider)" -> "RF-Entwicklung im Vgl zum Vorjahr (risk factor development in comparision to the previous year)" [origin=learned, weight="-3.8569736300407587"];
+"Risikofaktor (risk factor)" -> Members [origin=learned, weight=29.17438314217638];
+"Risikofaktor (risk factor)" -> "Insured people" [origin=learned, weight="-15.132824816519427"];
+"Risikofaktor (risk factor)" -> "RF-Entwicklung im Vgl zum Vorjahr (risk factor development in comparision to the previous year)" [origin=learned, weight=3.1794161425246625];
+"Risikofaktor (risk factor)" -> "Jahr (year)" [origin=learned, weight=0.5669562588917624];
+"RF-Entwicklung im Vgl zum Vorjahr (risk factor development in comparision to the previous year)" -> Members [origin=learned, weight=26.10980812524944];
+"RF-Entwicklung im Vgl zum Vorjahr (risk factor development in comparision to the previous year)" -> "Insured people" [origin=learned, weight="-20.802557678049265"];
+"Regionale Verteilung (regionality distribution) " -> Members [origin=learned, weight="-1.4299023479340969"];
+"Regionale Verteilung (regionality distribution) " -> "Insured people" [origin=learned, weight=2.1376118491956655];
+"Jahr (year)" -> Members [origin=learned, weight=28.97806381629977];
+"Jahr (year)" -> "Insured people" [origin=learned, weight=30.51430082253307];
+}
