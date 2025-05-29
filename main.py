@@ -1,7 +1,7 @@
 
 from src.DataLoader import DataLoader
 from src.Model import CausalNexModel, BayesianNetworkModel
-from src.data_preprocessing import label_encode_non_numeric, discretize_columns
+from src.Preprocessing import label_encode_non_numeric, discretize_columns
 
 
 
