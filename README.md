@@ -30,12 +30,12 @@ The model was trained locally on a MacBook using only CPU resources, without the
    venv_name//bin/jupyter nbconvert --to notebook --execute --inplace CauseHealPred.ipynb
    ```
 **Note** For macOS Graphviz may be installed in a location that is not on the default search path. In this case, it may be necessary to manually specify the path to the graphviz include and/or library directories:
-'''bash
+```bash
 pip install --config-settings="--global-option=build_ext" \
             --config-settings="--global-option=-I$(brew --prefix graphviz)/include/" \
             --config-settings="--global-option=-L$(brew --prefix graphviz)/lib/" \
             pygraphviz
-'''
+```
 
 For CausalNex Model
    ```bash
