@@ -8,6 +8,14 @@ Insurance Funds
 
 ---
 
+## Training Environment
+The model was trained locally on a MacBook using only CPU resources, without the need for GPU acceleration. This makes the training process lightweight and easily reproducible on standard hardware.
+- **Device:** MacBook Pro with Apple M4 Pro chip
+- **CPU:** 12-core Apple Silicon (M4 Pro)
+- **RAM:** 24 GB
+- **OS:** macOS Sequoia 15.5
+
+
 ## Installation and Execution
 1. Create a virtual environment with python version between 3.8 and 3.10
    ```bash
@@ -30,12 +38,13 @@ For CausalNex Model
 ---
 
 ## Structure for Causal Nex analysis
-- **src/DataLoader.py:**  Loads data from files.
-- **src/Preprocessing.py:** Handles the preprocessing.
-- **src/Model.py:** Contain the model.
+- **CausalNex/DataLoader.py:**  Loads data from files.
+- **CausalNex/Preprocessing.py:** Handles the preprocessing.
+- **CausalNex/Model.py:** Contain the model.
 - **main.py:** Main loop.
 
 ---
+
 ## Features for end to end flow
 
 - **End-to-End Causal Analysis**: Complete pipeline from data loading to results interpretation in CausalHealPred.ipynb
@@ -44,19 +53,23 @@ For CausalNex Model
 
 ## Data
 **Dataset Description**
+Additional Contribution Rate per Year and Quarter.xlsx contains data on different health insurance providers from 2016 to 2025 per quarter, including their additional contribution rate, showing the absolute values of insured members and insured people. 
+Market Share per insurance provider.xlsx contains data on different health insurance providers from 2016 to 2025, including their respective market share and the absolute values of insured members and insured people.
+Morbidity_Region.xlsx: contains data showing whether a health insurance provider is a regional provider, and the respective risk factor and its development from 2016 until 2025.
 
 ---
 
 ## Project status
 Ongoing 
 
-
+---
 
 ## Citation
 
 1. https://py-why.github.io/dowhy/
 2. https://causalnex.readthedocs.io/en/latest/05_resources/05_faq.html#what-is-causalnex
 
+---
 
 ## Acknowledgments
 
