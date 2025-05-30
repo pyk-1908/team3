@@ -27,7 +27,7 @@ The model was trained locally on a MacBook using only CPU resources, without the
     ```
 3. Run the notebook
    ```bash
-   jupyter nbconvert --to notebook --execute --inplace CausalHealPred.ipynb
+   jupyter nbconvert --to notebook --execute --inplace CauseHealPred.ipynb
    ```
 
 For CausalNex Model
@@ -47,7 +47,7 @@ For CausalNex Model
 
 ## Features for end to end flow
 
-- **End-to-End Causal Analysis**: Complete pipeline from data loading to results interpretation in CausalHealPred.ipynb
+- **End-to-End Causal Analysis**: Complete pipeline from data loading to results interpretation in CauseHealPred.ipynb
 
 ---
 
