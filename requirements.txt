@@ -71,3 +71,4 @@ notebook
 xlrd
 nbconvert
 nbformat
+jupyter
