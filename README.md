@@ -8,7 +8,7 @@ Insurance Funds
 
 ---
 
-## Installation and Execution for Causal Nex analysis
+## Installation and Execution
 1. Create a virtual environment with python version between 3.8 and 3.10
    ```bash
    python3.10 -m venv venv_name
@@ -17,7 +17,12 @@ Insurance Funds
     ```bash 
     python3 -m venv venv_name && source venv_name/bin/activate && pip install -r requirements.txt
     ```
-3. Run the script
+3. Run the notebook
+   ```bash
+   jupyter nbconvert --to notebook --execute --inplace CausalHealPred.ipynb
+   ```
+
+For CausalNex Model
    ```bash
    python3 main.py
    ```
@@ -31,17 +36,9 @@ Insurance Funds
 - **main.py:** Main loop.
 
 ---
-
-## Usage for end to end flow
-
-1. **Create a virtual environment and use the requirements.txt file in the DoWhy directory**
-
-2. **Follow along the jupyter notebook to complete for end to end flow** 
-
----
 ## Features for end to end flow
 
-- **End-to-End Causal Analysis**: Complete pipeline from data loading to results interpretation
+- **End-to-End Causal Analysis**: Complete pipeline from data loading to results interpretation in CausalHealPred.ipynb
 
 ---
 
