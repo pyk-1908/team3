@@ -8,7 +8,7 @@ Insurance Funds
 
 ---
 
-## Installation and Execution
+## Installation and Execution for Causal Nex analysis
 1. Create a virtual environment with python version between 3.8 and 3.10
    ```bash
    python3.10 -m venv venv_name
@@ -24,11 +24,24 @@ Insurance Funds
 
 ---
 
-## Structure
+## Structure for Causal Nex analysis
 - **src/DataLoader.py:**  Loads data from files.
 - **src/Preprocessing.py:** Handles the preprocessing.
 - **src/Model.py:** Contain the model.
 - **main.py:** Main loop.
+
+---
+
+## Usage for end to end flow
+
+1. **Create a virtual environment and use the requirements.txt file in the DoWhy directory**
+
+2. **Follow along the jupyter notebook to complete for end to end flow** 
+
+---
+## Features for end to end flow
+
+- **End-to-End Causal Analysis**: Complete pipeline from data loading to results interpretation
 
 ---
 
@@ -39,3 +52,20 @@ Insurance Funds
 
 ## Project status
 Ongoing 
+
+
+
+## Citation
+
+1. https://py-why.github.io/dowhy/
+2. https://causalnex.readthedocs.io/en/latest/05_resources/05_faq.html#what-is-causalnex
+
+
+## Acknowledgments
+
+- DoWhy development team for the causal inference framework
+- Microsoft Research and PyWhy organization
+- Healthcare data providers
+- Open source community contributions
+
+
