@@ -118,7 +118,7 @@ class BayesianNetworkModel:
             raise ValueError("No Bayesian Network structure defined. Create one first.")
         
         self.bayesian_network.fit_cpds(df, method="BayesianEstimator", bayes_prior="K2")
-        return self
+        return
 
     
     def predict(self, test_df, target:str=None):
