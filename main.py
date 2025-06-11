@@ -1,49 +1,169 @@
-
 from CausalNex.DataLoader import DataLoader
 from CausalNex.Model import CausalNexModel, BayesianNetworkModel
-from CausalNex.Preprocessing import label_encode_non_numeric, discretize_columns
+from CausalNex.Preprocessing import Preprocessing, FeatureDiscretizationAnalyzer
+from CausalNex.Logger import Logger
+import os
+import argparse
 
-
-
-if __name__ == '__main__':
-    Additional_Contribution_Rate_path = 'Dataset/Additional Contribution Rate per Year and Quarter.xlsx'
-    Morbidity_Region_path = 'Dataset/Morbidity_Region.xlsx'
+def run_experiment(is_new_experiment=True, model_path=None):
+    """
+    Run the causal analysis experiment.
+    
+    Args:
+        is_new_experiment (bool): If True, train and save new models. If False, load existing ones.
+        model_path (str): Path to saved model if is_new_experiment is False
+    """
+    # Initialize logger
+    logger = Logger(output_dir="output")
+    
+    dataset_path = 'Dataset/merged_data.csv'
     visualization_folder = 'visualizations'
+    NOTEARS_checkpoint_folder = os.path.join('checkpoints', 'NOTEARS_DAG_definition')
+    model_save_path = os.path.join('models', 'bayesian_network.pkl')
 
+    # Create necessary directories
+    for directory in [visualization_folder, NOTEARS_checkpoint_folder, 'models']:
+        os.makedirs(directory, exist_ok=True)
 
     #################### Load the data  ######################
     data_loader = DataLoader()
-    data_loader.load_multiple_files({
-        'additional_contribution_rate': Additional_Contribution_Rate_path,
-        'morbidity_region': Morbidity_Region_path
-    })
-    print("Data loaded successfully.")
-    merged_dataset = data_loader.merge_loaded_files([
-        {
-            'left': 'additional_contribution_rate',
-            'right': 'morbidity_region',
-            'left_on': ['Insurance Provider', 'Year'],
-            'right_on': ['Krankenkasse ( statutory insurance provider)', 'Jahr (year)']
-        }
-    ])
-    print("Data merged successfully.")
+    data_loader.load_data(dataset_path, 'merged_dataset')
+    merged_dataset = data_loader.data
+    logger.log("Data loaded successfully.")
 
-    ################# Preprocess the data #######################
-    #  we want to make our data numeric, since this is what the NOTEARS expects. We can do this by label encoding non-numeric variables.
-    merged_dataset, label_encoders = label_encode_non_numeric(merged_dataset.data)
-    print("Data label encoded successfully.")
- 
+    ##################################################################
+    ################# Learning the Confounders #######################
+    ##################################################################
 
-    ############## Model #######################
-    # crete a structure model
-    structure_model = CausalNexModel()
-    structure_model.create_structure(merged_dataset, max_iter=10000, w_threshold=0.1)
-    print("Structure model created successfully.")
-    # Plot the structure model
-    structure_model.plot_structure(plot_title="Causal_Structure_Model", path=visualization_folder)
-    print("Structure model plotted successfully.")
-    # Save the structure model
-    structure_model.save_structure('visualizations/causal_structure_model.dot')
-    print("Structure model saved successfully.")
+    ################# preprocessing #######################
 
+    preprocessor = Preprocessing(logger=logger)
+
+    # add negative Treatment variable
+    # drop Rate_Lag and ACR columns as we will depend only on Treatment increase, decrease, or no change
+    merged_dataset = preprocessor.calculate_treatment(merged_dataset)
+
+    # add churn variable
+    # drop Members and Members_Lag columns as we will depend only on Chrun existence or not
+    merged_dataset = preprocessor.calculate_churn(merged_dataset)
+
+    # learn the network structure automatically from the data using the NOTEARS algorithm. 
+    # (NOTEARS is a recently published algorithm for learning DAGs from data, framed as a continuous optimisation problem. It allowed us to overcome the challenges of combinatorial optimisation, giving a new impetus to the usage of BNs in machine learning applications.)
+    #  we want to make our data numeric, since this is what the NOTEARS expects.
+    #  We can do this by label encoding non-numeric variables.
+    merged_dataset, label_encoders = preprocessor.label_encode_non_numeric(merged_dataset)
+    logger.log("Data label encoded successfully.")
+
+
+    if is_new_experiment:
+        # Save encoded dataset
+        logger.save_dataframe(merged_dataset, "preprocessed_dataset")
+
+    ############## Defining the DAG with StructureModel #######################
+    CausalNex = CausalNexModel()
+
+    # Create and save new structure model
+    structure_model_path = os.path.join(NOTEARS_checkpoint_folder, 'NOTEARS_DAG_causal_structure_model.dot')
+    CausalNex.create_structure(merged_dataset, max_iter=10000, w_threshold=0.1)
+    if is_new_experiment:
+        CausalNex.save_structure(structure_model_path)
+        logger.log("New structure model created and saved.")
+
+    ################# adjusting the structure model #######################
+    # Remove edges with smallest weight until the graph is a DAG.
+    CausalNex.structure_model.threshold_till_dag()
+    print("Structure model adjusted to ensure it is a DAG.")
+    logger.log("Structure model adjusted to ensure it is a DAG.")
     
+    if is_new_experiment:
+        # Plot and save the adjusted structure model
+        adjusted_plot_title = f"DAG_Causal_Structure_Model_{logger.timestamp}"
+        CausalNex.plot_structure(plot_title=adjusted_plot_title, path=visualization_folder)
+        print(f"Adjusted structure model plotted successfully as {adjusted_plot_title}")
+        logger.log(f"Adjusted structure model plotted successfully as {adjusted_plot_title}")
+
+        # Save the adjusted structure model as a DOT file
+        adjusted_dot_file = os.path.join(NOTEARS_checkpoint_folder, f'NOTEARS_DAG_causal_structure_model.dot')
+        CausalNex.save_structure(adjusted_dot_file)
+        logger.log(f"Adjusted structure model saved successfully as {adjusted_dot_file}")
+
+        # Save adjusted model configuration
+        adjusted_model_info = {
+            "max_iter": 10000,
+            "w_threshold": 0.1,
+            "dataset_path": dataset_path,
+            "encoding_info": {col: list(le.classes_) for col, le in label_encoders.items()},
+            "adjusted": True
+        }
+        logger.save_model_results(adjusted_model_info, "adjusted_model_configuration")
+
+
+    #################### preprocessing for Baysian Network ######################
+    # define the causal variables from the structure model
+    causal_variables = list(CausalNex.structure_model.nodes())
+    data = merged_dataset[causal_variables].copy()
+    # analyze the causal variables to check for any discretization needs
+    analyzer = FeatureDiscretizationAnalyzer(data,logger=logger)
+    # Inspect all features
+    analyzer.inspect_features()
+    # Create visualizations
+    analyzer.create_visualizations(causal_variables, save=is_new_experiment)
+
+
+    # Discretize the features based on the analysis
+    # config ( other features do not need discretization)
+    discretization_config = {
+        'RiskFactor': {'method': 'equal_width', 'n_bins': 20},
+    }
+    # Discretize the dataset
+    discretized_dataset = preprocessor.batch_discretize(data, discretization_config)
+
+    data_loader.data = discretized_dataset
+
+    # Treatment is the treatment variable, and Churn is the outcome variable.
+
+
+
+    ###################### Learning the Bayesian Network ######################
+    if is_new_experiment:
+        # Create and train new Bayesian Network model
+        bayesian_network = BayesianNetworkModel(CausalNex.structure_model)
+        train, test = data_loader.split_data(test_size=0.2)
+        bayesian_network.fit(discretized_dataset, train=train)
+        bayesian_network.save_cpds_with_logger(cpds=['Treatment', 'Churn'] ,logger= logger)
+        bayesian_network.save_model(model_save_path)
+        logger.log("New Bayesian Network model trained and saved.")
+    else:
+        # Load existing Bayesian Network model
+        bayesian_network = BayesianNetworkModel(model_path=model_save_path)
+        train, test = data_loader.split_data(test_size=0.2)
+        logger.log("Existing Bayesian Network model loaded.")
+
+    # Evaluate model
+    predictions = bayesian_network.predict(test, 'Churn')
+    classification_report, roc, auc = bayesian_network.classification_report(test, 'Churn')
+    
+    # Save results if it's a new experiment
+    if is_new_experiment:
+        logger.save_model_results(classification_report, "classification_report")
+        logger.save_roc_plot(roc, auc, filename="bayesian_network_roc", folder=visualization_folder)
+        logger.log(f"Results saved for new experiment. AUC: {auc:.3f}")
+    
+    return classification_report, roc, auc
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run causal analysis experiment')
+    parser.add_argument('--new-experiment', action='store_true', default=False,
+                      help='If set, train and save new models. Otherwise, load existing ones.')
+    parser.add_argument('--model-path', type=str, default=None,
+                      help='Path to saved model for loading (ignored if --new-experiment is set)')
+    
+    args = parser.parse_args()
+    
+    report, roc, auc = run_experiment(
+        is_new_experiment=args.new_experiment,
+        model_path=args.model_path
+    )
+    print(f"Experiment completed. Final AUC: {auc:.3f}")
+
+
