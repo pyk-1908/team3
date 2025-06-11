@@ -153,7 +153,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
     ####################### Do Calculus ########################
     # Perform do-calculus to estimate the effect of treatment on churn
     #  First let’s update our model using the complete dataset, since the one we currently have was only built from training data.
-    bayesian_network.fit_cpds(discretized_dataset, method="BayesianEstimator", bayes_prior="K2")
+    bayesian_network.fit_cpds(discretized_dataset)
 
     # Average Treatment Effect (ATE)
     ate_results, average_ate = bayesian_network.estimate_ate(treatment='Treatment', outcome='Churn')
