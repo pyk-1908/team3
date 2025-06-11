@@ -149,7 +149,35 @@ def run_experiment(is_new_experiment=True, model_path=None):
         logger.save_roc_plot(roc, auc, filename="bayesian_network_roc", folder=visualization_folder)
         logger.log(f"Results saved for new experiment. AUC: {auc:.3f}")
     
+    
+    ####################### Do Calculus ########################
+    # Perform do-calculus to estimate the effect of treatment on churn
+    #  First let’s update our model using the complete dataset, since the one we currently have was only built from training data.
+    bayesian_network.fit_cpds(discretized_dataset, method="BayesianEstimator", bayes_prior="K2")
+
+    # Average Treatment Effect (ATE)
+    ate_results, average_ate = bayesian_network.estimate_ate(treatment='Treatment', outcome='Churn')
+    logger.log(f"Average Treatment Effect (ATE): {ate_results}, Average ATE: {average_ate}")
+
+    # Conditional Average Treatment Effect (CATE)
+    # confounders
+    conditional_variables = causal_variables.remove('Treatment', 'Churn')
+    cate_results, average_cate = bayesian_network.estimate_ate(treatment='Treatment', outcome='Churn', conditional_variables=conditional_variables)
+    logger.log(f"Conditional Average Treatment Effect (CATE): {cate_results}, Average CATE: {average_cate}")
+
+
+    # Save the results of the do-calculus
+    do_calculus_results = {
+        "ATE": average_ate,
+        "CATE": average_cate
+    }
+    logger.save_model_results(do_calculus_results, "do_calculus_results")
+    logger.log("Do-calculus results saved.")
+    
     return classification_report, roc, auc
+
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run causal analysis experiment')

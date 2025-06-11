@@ -4,6 +4,7 @@ from causalnex.plots import plot_structure, NODE_STYLE, EDGE_STYLE
 import networkx as nx
 from causalnex.network import BayesianNetwork
 from causalnex.evaluation import classification_report, roc_auc
+from causalnex.inference import InferenceEngine
 import pandas as pd
 import os
 import pickle
@@ -102,6 +103,23 @@ class BayesianNetworkModel:
         self.bayesian_network.fit_node_states(df) # need to earn all the possible states of the nodes using the whole dataset
         self.bayesian_network.fit_cpds(train, method="BayesianEstimator", bayes_prior="K2")
         return self
+    
+    def fit_cpds(self, df):
+        """
+        Fit the Conditional Probability Distributions (CPDs) of the Bayesian Network.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the data to fit CPDs.
+
+        Returns:
+            self: Returns the instance for method chaining
+        """
+        if self.bayesian_network is None:
+            raise ValueError("No Bayesian Network structure defined. Create one first.")
+        
+        self.bayesian_network.fit_cpds(df, method="BayesianEstimator", bayes_prior="K2")
+        return self
+
     
     def predict(self, test_df, target:str=None):
         """
@@ -202,3 +220,60 @@ class BayesianNetworkModel:
         with open(filepath, 'rb') as f:
             self.bayesian_network = pickle.load(f)
         return self
+    
+    def estimate_ate(self, treatment, outcome, treatment_values=None, conditional_variables=None):
+        """
+        Estimate the Average Treatment Effect (ATE) using the Bayesian Network for all pairs of treatment values.
+        
+        Args:
+            treatment (str): The treatment variable
+            outcome (str): The outcome variable
+            treatment_values (list): List of possible treatment values. If None, uses [-1, 0, 1]
+        
+        Returns:
+            tuple: (Dictionary of ATE comparisons between treatment value pairs, average ATE)
+        """
+        if self.bayesian_network is None:
+            raise ValueError("No Bayesian Network model defined.")
+        
+        # Default treatment values if none provided
+        if treatment_values is None:
+            treatment_values = [-1, 0, 1]
+        
+        inference_engine = InferenceEngine(self.bayesian_network)
+        ate_results = {}
+        total_ate = 0
+        num_comparisons = 0
+        
+        # Compare each pair of treatment values
+        for i, t1 in enumerate(treatment_values):
+            for t2 in treatment_values[i+1:]:
+                # Calculate probability for first treatment value
+                inference_engine.do_intervention(treatment, t1)
+                p_outcome_t1 = inference_engine.query({conditional_variables})[outcome]
+                
+                # Calculate probability for second treatment value
+                inference_engine.do_intervention(treatment, t2)
+                p_outcome_t2 = inference_engine.query({conditional_variables})[outcome]
+                
+                # Reset intervention
+                inference_engine.reset_do(treatment)
+                
+                # Calculate ATE for this pair
+                ate = p_outcome_t2 - p_outcome_t1
+                
+                # Update totals for average
+                total_ate += ate  
+                num_comparisons += 1
+                
+                # Store ATE for this pair
+                ate_results[f"{t1}_vs_{t2}"] = {
+                    "treatment_values": (t1, t2),
+                    "probabilities": (p_outcome_t1, p_outcome_t2),
+                    "ate": ate
+                }
+        
+        # Calculate average ATE
+        average_ate = total_ate / num_comparisons if num_comparisons > 0 else 0
+        
+        return ate_results, average_ate
