@@ -25,7 +25,7 @@ class DataLoader:
             name = file_path.split('/')[-1].split('.')[0]
             
         # Load the data
-        data = pd.read_excel(file_path)
+        data = pd.read_csv(file_path)
         data.fillna(method='ffill', inplace=True)
         
         # Store in loaded_files dictionary
@@ -83,24 +83,20 @@ class DataLoader:
         self.data = result
         return self
 
-    def split_data(self, target_column, test_size=0.2):
+    def split_data(self, test_size=0.2):
         """
         Split the data into training and testing sets.
         
         Args:
-            target_column (str): Name of the target column
             test_size (float): Proportion of dataset to include in the test split
             
         Returns:
-            tuple: (X_train, X_test, y_train, y_test)
+            train and test: Tuple of DataFrames
         """
         if self.data is None:
             raise ValueError("No data loaded. Call load_data first.")
             
-        X = self.data.drop(columns=[target_column])
-        y = self.data[target_column]
-        
-        return train_test_split(X, y, test_size=test_size, random_state=42)
+        return train_test_split(self.data, test_size=test_size, random_state=42)
 
     def get_data(self):
         """
@@ -110,5 +106,20 @@ class DataLoader:
             pd.DataFrame: The current DataFrame
         """
         return self.data
+    
+    def map_data(self):
+        churn_mapping = {
+            1 : 'Member Churn',
+            0 : 'No Member Churn'
+        }
+
+        Treatment_mapping = {
+            1 : 'Increased ACR',
+            0 : 'No Increase in ACR',
+            -1 : 'Decreased ACR'
+        }
+
+        self.data['Churn'] = self.data['Churn'].map(churn_mapping)
+        self.data['Treatment'] = self.data['Treatment'].map(Treatment_mapping)
 
 
