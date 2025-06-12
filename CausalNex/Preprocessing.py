@@ -321,7 +321,7 @@ class Preprocessing:
 
     def batch_discretize(self, data, features_config):
         """
-        Discretize multiple features at once
+        Discretize multiple features at once by overwriting original features.
         
         Args:
             data (pd.DataFrame): Input dataset
@@ -339,9 +339,12 @@ class Preprocessing:
         
         for feature, config in features_config.items():
             if feature in data.columns:
-                result_data[f"{feature}_discretized"] = self.discretize_feature(
+                # Directly overwrite the original feature
+                result_data[feature] = self.discretize_feature(
                     data, feature, **config
                 )
+                if self.logger:
+                    self.logger.log(f"Discretized feature '{feature}' using method '{config.get('method', 'equal_width')}'")
         
         return result_data
 
