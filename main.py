@@ -120,6 +120,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
 
     data_loader.data = discretized_dataset
 
+
     # Treatment is the treatment variable, and Churn is the outcome variable.
 
 
@@ -127,20 +128,20 @@ def run_experiment(is_new_experiment=True, model_path=None):
     ###################### Learning the Bayesian Network ######################
     if is_new_experiment:
         # Create and train new Bayesian Network model
-        bayesian_network = BayesianNetworkModel(CausalNex.structure_model)
+        bayesian_network_model = BayesianNetworkModel(CausalNex.structure_model)
         train, test = data_loader.split_data(test_size=0.2)
-        bayesian_network.fit(discretized_dataset, train=train)
-        bayesian_network.save_cpds_with_logger(cpds=['Provider','Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
-        bayesian_network.save_model(model_save_path)
+        bayesian_network_model.fit(discretized_dataset, train=train)
+        bayesian_network_model.save_cpds_with_logger(cpds=['Provider','Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
+        bayesian_network_model.save_model(model_save_path)
         logger.log("New Bayesian Network model trained and saved.")
     else:
         # Load existing Bayesian Network model
-        bayesian_network = BayesianNetworkModel(model_path=model_save_path)
+        bayesian_network_model = BayesianNetworkModel(model_path=model_save_path)
         train, test = data_loader.split_data(test_size=0.2)
         logger.log("Existing Bayesian Network model loaded.")
 
     # Evaluate model
-    classification_report, roc, auc = bayesian_network.classification_report(test, 'Churn')
+    classification_report, roc, auc = bayesian_network_model.classification_report(test, 'Churn')
     
     # Save results if it's a new experiment
     if is_new_experiment:
@@ -154,26 +155,29 @@ def run_experiment(is_new_experiment=True, model_path=None):
     #  First let’s update our model using the complete dataset
     # removed Year as it has a lot of cpds
     CausalNex.structure_model.remove_node('Year')
+
+    cropped_data_loader = DataLoader()
+    cropped_data_loader.data = data_loader.data.copy().remove(columns=['Year'])
+   
+
     new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
     bn = new_bayesian_network.fit_cpds(discretized_dataset)
-    print(bn.nodes)
 
 
     # Average Treatment Effect (ATE)
-    ate_results, average_ate = bayesian_network.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn')
+    ate_results, average_ate = bayesian_network_model.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn')
     logger.log(f"Average Treatment Effect (ATE): {ate_results}, Average ATE: {average_ate}")
 
     # Conditional Average Treatment Effect (CATE)
-    # confounders
-    conditional_variables = causal_variables.remove('Treatment', 'Churn')
-    cate_results, average_cate = bayesian_network.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn', conditional_variables=conditional_variables)
-    logger.log(f"Conditional Average Treatment Effect (CATE): {cate_results}, Average CATE: {average_cate}")
+    data_with_CATE = cropped_data_loader.add_CATE(bayesian_network_model, bn, treatment='Treatment', outcome='Churn')
+
+    # Save the dataset with CATE
+    logger.save_dataframe(data_with_CATE, "dataset_with_CATE", format='csv')
 
 
     # Save the results of the do-calculus
     do_calculus_results = {
         "ATE": average_ate,
-        "CATE": average_cate
     }
     logger.save_model_results(do_calculus_results, "do_calculus_results")
     logger.log("Do-calculus results saved.")

@@ -86,6 +86,8 @@ class BayesianNetworkModel:
         else:
             self.bayesian_network = BayesianNetwork(structure_model) if structure_model else None
 
+        self.ie = None  # Inference Engine instance
+
     def fit(self, df, train):
         """
         specifying all of the states that each node can take
@@ -160,7 +162,7 @@ class BayesianNetworkModel:
         try:
             for cpd in cpds:
                 cpd_df = self.get_cpd(cpd)
-                filename = f"{file_name_base}_{cpd}.csv"
+                filename = f"{file_name_base}_{cpd}"
                 # Save the DataFrame using the logger
                 logger.save_dataframe(cpd_df, filename, format='csv')
                 logger.log(f"Successfully saved CPDs to {filename}")
@@ -221,7 +223,7 @@ class BayesianNetworkModel:
             self.bayesian_network = pickle.load(f)
         return self
     
-    def estimate_ate(self, bn, treatment, outcome, treatment_values=None, conditional_variables=None):
+    def estimate_ate(self, bn = None, treatment='Treatment', outcome='Churn', treatment_values=None):
         """
         Estimate the Average Treatment Effect (ATE) using the Bayesian Network for all pairs of treatment values.
         
@@ -233,50 +235,96 @@ class BayesianNetworkModel:
         Returns:
             tuple: (Dictionary of ATE comparisons between treatment value pairs, average ATE)
         """
-        if self.bayesian_network is None:
+        if bn is None and self.bayesian_network is None: 
             raise ValueError("No Bayesian Network model defined.")
         
+
         # Default treatment values if none provided
         if treatment_values is None:
             treatment_values = [-1, 0, 1]
         
-
-        inference_engine = InferenceEngine(bn)
-        ate_results = {}
-        total_ate = 0
-        num_comparisons = 0
-
-        
-        # Compare each pair of treatment values
-        for i, t1 in enumerate(treatment_values):
-            for t2 in treatment_values[i+1:]:
-
-                # Calculate probability for first treatment value
-                inference_engine.do_intervention(treatment, t1)
-                p_outcome_t1 = inference_engine.query({conditional_variables})[outcome]
-                
-                # Calculate probability for second treatment value
-                inference_engine.do_intervention(treatment, t2)
-                p_outcome_t2 = inference_engine.query({conditional_variables})[outcome]
-                
-                # Reset intervention
-                inference_engine.reset_do(treatment)
-                
-                # Calculate ATE for this pair
-                ate = p_outcome_t2 - p_outcome_t1
-                
-                # Update totals for average
-                total_ate += ate  
-                num_comparisons += 1
-                
-                # Store ATE for this pair
-                ate_results[f"{t1}_vs_{t2}"] = {
-                    "treatment_values": (t1, t2),
-                    "probabilities": (p_outcome_t1, p_outcome_t2),
-                    "ate": ate
-                }
-        
+        if self.ie is None:
+            # Create inference engine if not already created
+            if bn is None:
+                self.ie = InferenceEngine(self.bayesian_network)
+            else:
+                self.ie = InferenceEngine(bn)
+      
+        expected_outcomes = {}
+        for t in treatment_values:
+            # Perform intervention for the treatment value
+            self.ie.do_intervention(treatment, t)
+            
+            # Query the outcome variable
+            outcome_probabilities = self.ie.query({})[outcome]
+            
+            # Reset intervention
+            self.ie.reset_do(treatment)
+            
+            # Calculate expected outcome
+            expected_outcome = sum([p * v for v, p in outcome_probabilities.items()])
+            
+            # Store expected outcome for this treatment value
+            expected_outcomes[t] = expected_outcome
+        # Compute pairwise ATEs
+        ate = {
+            "E[Y|do(T=-1)]": expected_outcomes[-1],
+            "E[Y|do(T=0)]": expected_outcomes[0],
+            "E[Y|do(T=1)]": expected_outcomes[1],
+            "ATE(1 vs 0)": expected_outcomes[1] - expected_outcomes[0],
+            "ATE(1 vs -1)": expected_outcomes[1] - expected_outcomes[-1],
+            "ATE(0 vs -1)": expected_outcomes[0] - expected_outcomes[-1],
+        }
         # Calculate average ATE
-        average_ate = total_ate / num_comparisons if num_comparisons > 0 else 0
+        average_ate = sum(ate.values()) / len(ate)
+        return ate, average_ate
+    
+    def estimate_cate(self, bn = None, treatment='Treatment', outcome='Churn', treatment_values=None, x=None):
+       
+        if self.ie is None:
+            # Create inference engine if not already created
+            if bn is None:
+                self.ie = InferenceEngine(self.bayesian_network)
+            else:
+                self.ie = InferenceEngine(bn)
         
-        return ate_results, average_ate
+
+        expected_outcomes = {}
+       
+        # Default treatment values if none provided
+        if treatment_values is None:
+            treatment_values = [-1, 0, 1]
+        
+        for t in treatment_values:
+            # Perform intervention for the treatment value
+            self.ie.do_intervention(treatment, t)
+            
+            # Query the outcome variable
+            outcome_probabilities = self.ie.query(x)[outcome]
+            
+            # Reset intervention
+            self.ie.reset_do(treatment)
+            
+            # Calculate expected outcome
+            expected_outcome = sum([p * v for v, p in outcome_probabilities.items()])
+            
+            # Store expected outcome for this treatment value
+            expected_outcomes[t] = expected_outcome
+
+            # reset intervention
+            self.ie.reset_do(treatment)
+
+        # Compute pairwise CATEs
+        cate_row = {
+        "E[Y|do(T=-1)]": expected_outcomes[-1],
+        "E[Y|do(T=0)]": expected_outcomes[0],
+        "E[Y|do(T=1)]": expected_outcomes[1],
+        "CATE(1 vs 0)": expected_outcomes[1] - expected_outcomes[0],
+        "CATE(1 vs -1)": expected_outcomes[1] - expected_outcomes[-1],
+        "CATE(0 vs -1)": expected_outcomes[0] - expected_outcomes[-1],
+        }
+
+        return cate_row
+
+
+        
