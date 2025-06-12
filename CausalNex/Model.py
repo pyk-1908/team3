@@ -117,8 +117,8 @@ class BayesianNetworkModel:
         if self.bayesian_network is None:
             raise ValueError("No Bayesian Network structure defined. Create one first.")
         
-        self.bayesian_network.fit_cpds(df, method="BayesianEstimator", bayes_prior="K2")
-        return
+        bn = self.bayesian_network.fit_node_states_and_cpds(df, method="BayesianEstimator", bayes_prior="K2")
+        return bn
 
     
     def predict(self, test_df, target:str=None):
@@ -221,7 +221,7 @@ class BayesianNetworkModel:
             self.bayesian_network = pickle.load(f)
         return self
     
-    def estimate_ate(self, treatment, outcome, treatment_values=None, conditional_variables=None):
+    def estimate_ate(self, bn, treatment, outcome, treatment_values=None, conditional_variables=None):
         """
         Estimate the Average Treatment Effect (ATE) using the Bayesian Network for all pairs of treatment values.
         
@@ -240,14 +240,17 @@ class BayesianNetworkModel:
         if treatment_values is None:
             treatment_values = [-1, 0, 1]
         
-        inference_engine = InferenceEngine(self.bayesian_network)
+
+        inference_engine = InferenceEngine(bn)
         ate_results = {}
         total_ate = 0
         num_comparisons = 0
+
         
         # Compare each pair of treatment values
         for i, t1 in enumerate(treatment_values):
             for t2 in treatment_values[i+1:]:
+
                 # Calculate probability for first treatment value
                 inference_engine.do_intervention(treatment, t1)
                 p_outcome_t1 = inference_engine.query({conditional_variables})[outcome]

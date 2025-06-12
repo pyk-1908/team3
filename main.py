@@ -130,7 +130,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
         bayesian_network = BayesianNetworkModel(CausalNex.structure_model)
         train, test = data_loader.split_data(test_size=0.2)
         bayesian_network.fit(discretized_dataset, train=train)
-        bayesian_network.save_cpds_with_logger(cpds=['Treatment', 'Churn'] ,logger= logger)
+        bayesian_network.save_cpds_with_logger(cpds=['Provider','Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
         bayesian_network.save_model(model_save_path)
         logger.log("New Bayesian Network model trained and saved.")
     else:
@@ -140,7 +140,6 @@ def run_experiment(is_new_experiment=True, model_path=None):
         logger.log("Existing Bayesian Network model loaded.")
 
     # Evaluate model
-    predictions = bayesian_network.predict(test, 'Churn')
     classification_report, roc, auc = bayesian_network.classification_report(test, 'Churn')
     
     # Save results if it's a new experiment
@@ -152,17 +151,22 @@ def run_experiment(is_new_experiment=True, model_path=None):
     
     ####################### Do Calculus ########################
     # Perform do-calculus to estimate the effect of treatment on churn
-    #  First let’s update our model using the complete dataset, since the one we currently have was only built from training data.
-    bayesian_network.fit_cpds(discretized_dataset)
+    #  First let’s update our model using the complete dataset
+    # removed Year as it has a lot of cpds
+    CausalNex.structure_model.remove_node('Year')
+    new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
+    bn = new_bayesian_network.fit_cpds(discretized_dataset)
+    print(bn.nodes)
+
 
     # Average Treatment Effect (ATE)
-    ate_results, average_ate = bayesian_network.estimate_ate(treatment='Treatment', outcome='Churn')
+    ate_results, average_ate = bayesian_network.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn')
     logger.log(f"Average Treatment Effect (ATE): {ate_results}, Average ATE: {average_ate}")
 
     # Conditional Average Treatment Effect (CATE)
     # confounders
     conditional_variables = causal_variables.remove('Treatment', 'Churn')
-    cate_results, average_cate = bayesian_network.estimate_ate(treatment='Treatment', outcome='Churn', conditional_variables=conditional_variables)
+    cate_results, average_cate = bayesian_network.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn', conditional_variables=conditional_variables)
     logger.log(f"Conditional Average Treatment Effect (CATE): {cate_results}, Average CATE: {average_cate}")
 
 
