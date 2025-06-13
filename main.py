@@ -155,9 +155,11 @@ def run_experiment(is_new_experiment=True, model_path=None):
     #  First let’s update our model using the complete dataset
     # removed Year as it has a lot of cpds
     CausalNex.structure_model.remove_node('Year')
+    CausalNex.structure_model.remove_node('Provider')
 
     cropped_data_loader = DataLoader()
-    cropped_data_loader.data = data_loader.data.copy().remove(columns=['Year'])
+    cropped_data_loader.data = data_loader.data.copy().drop('Year', axis=1)
+    cropped_data_loader.data = cropped_data_loader.data.drop('Provider', axis=1)
    
 
     new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
