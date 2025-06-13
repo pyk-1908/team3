@@ -72,3 +72,6 @@ xlrd
 nbconvert
 nbformat
 jupyter
+causalml
+numpy
+pandas
