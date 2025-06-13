@@ -2,6 +2,7 @@ from CausalNex.DataLoader import DataLoader
 from CausalNex.Model import CausalNexModel, BayesianNetworkModel
 from CausalNex.Preprocessing import Preprocessing, FeatureDiscretizationAnalyzer
 from CausalNex.Logger import Logger
+from CausalNex.evaluation import placebo_test
 import os
 import argparse
 
@@ -145,7 +146,6 @@ def run_experiment(is_new_experiment=True, model_path=None):
     
     # Save results if it's a new experiment
     if is_new_experiment:
-        logger.save_model_results(classification_report, "classification_report")
         logger.save_roc_plot(roc, auc, filename="bayesian_network_roc", folder=visualization_folder)
         logger.log(f"Results saved for new experiment. AUC: {auc:.3f}")
     
@@ -156,10 +156,17 @@ def run_experiment(is_new_experiment=True, model_path=None):
     # removed Year as it has a lot of cpds
     CausalNex.structure_model.remove_node('Year')
     CausalNex.structure_model.remove_node('Provider')
+    # CausalNex.structure_model.remove_node('Quarter')
+    # # CausalNex.structure_model.remove_node('Regionality')
+    # CausalNex.structure_model.remove_node('RiskFactor')
+
 
     cropped_data_loader = DataLoader()
     cropped_data_loader.data = data_loader.data.copy().drop('Year', axis=1)
     cropped_data_loader.data = cropped_data_loader.data.drop('Provider', axis=1)
+    # cropped_data_loader.data = cropped_data_loader.data.drop('Quarter', axis=1)
+    # # cropped_data_loader.data = cropped_data_loader.data.drop('Regionality', axis=1)
+    # cropped_data_loader.data = cropped_data_loader.data.drop('RiskFactor', axis=1)
    
 
     new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
@@ -176,13 +183,21 @@ def run_experiment(is_new_experiment=True, model_path=None):
     # Save the dataset with CATE
     logger.save_dataframe(data_with_CATE, "dataset_with_CATE", format='csv')
 
+    # Perform placebo test
+    placebo_results = placebo_test(bayesian_network_model= bayesian_network_model, bn = new_bayesian_network, data_with_CATE=data_with_CATE,
+                                                        treatment='Treatment', outcome='Churn', logger=logger, save=is_new_experiment)
 
-    # Save the results of the do-calculus
-    do_calculus_results = {
+
+    model_results = {
+        "classification_report": classification_report,
+        "roc": roc,
+        "auc": auc,
         "ATE": average_ate,
+        "placebo_test": placebo_results,
     }
-    logger.save_model_results(do_calculus_results, "do_calculus_results")
-    logger.log("Do-calculus results saved.")
+    if is_new_experiment:
+        logger.save_model_results(model_results, "model_results")
+        logger.log("all model_results saved.")
     
     return classification_report, roc, auc
 
