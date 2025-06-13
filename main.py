@@ -73,6 +73,8 @@ def run_experiment(is_new_experiment=True, model_path=None):
     ################# adjusting the structure model #######################
     # Remove edges with smallest weight until the graph is a DAG.
     CausalNex.structure_model.threshold_till_dag()
+    CausalNex.structure_model.remove_node('Year')
+    CausalNex.structure_model.remove_node('Provider')
     DAG = CausalNex.adjacency_dict()
     print("Structure model adjusted to ensure it is a DAG.")
     logger.log("Structure model adjusted to ensure it is a DAG.")
@@ -136,7 +138,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
         bayesian_network_model = BayesianNetworkModel(CausalNex.structure_model)
         train, test = data_loader.split_data(test_size=0.2)
         bayesian_network_model.fit(discretized_dataset, train=train)
-        bayesian_network_model.save_cpds_with_logger(cpds=['Year', 'Provider','Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
+        bayesian_network_model.save_cpds_with_logger(cpds=['Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
         bayesian_network_model.save_model(model_save_path)
         logger.log("New Bayesian Network model trained and saved.")
     else:
@@ -158,8 +160,6 @@ def run_experiment(is_new_experiment=True, model_path=None):
     # Perform do-calculus to estimate the effect of treatment on churn
     #  First let’s update our model using the complete dataset
     # removed Year as it has a lot of cpds
-    CausalNex.structure_model.remove_node('Year')
-    CausalNex.structure_model.remove_node('Provider')
     # CausalNex.structure_model.remove_node('Quarter')
     # # CausalNex.structure_model.remove_node('Regionality')
     # CausalNex.structure_model.remove_node('RiskFactor')
