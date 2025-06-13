@@ -1,30 +1,17 @@
 strict digraph {
-Year;
-Provider;
 Quarter;
 RiskFactor;
 Regionality;
 Treatment;
 Churn;
-Provider -> Year [origin=learned, weight=11.946151321335083];
-Quarter -> Year [origin=learned, weight=291.2322012381453];
-Quarter -> Provider [origin=learned, weight=25.090347190640177];
 Quarter -> RiskFactor [origin=learned, weight=18.219246752537217];
 Quarter -> Churn [origin=learned, weight="-2.007977733488897"];
-RiskFactor -> Year [origin=learned, weight=342.0931879616106];
-RiskFactor -> Provider [origin=learned, weight="-23.051554786778908"];
-Regionality -> Year [origin=learned, weight=276.3118508675914];
-Regionality -> Provider [origin=learned, weight=16.361295488002412];
 Regionality -> Quarter [origin=learned, weight=3.7022326974361888];
 Regionality -> RiskFactor [origin=learned, weight=4.359333619484953];
 Regionality -> Churn [origin=learned, weight="-0.8680446151507331"];
-Treatment -> Year [origin=learned, weight=70.94906476407887];
-Treatment -> Provider [origin=learned, weight="-4.686557328561737"];
 Treatment -> Quarter [origin=learned, weight="-10.79923566470823"];
 Treatment -> RiskFactor [origin=learned, weight="-6.2122042190623"];
 Treatment -> Regionality [origin=learned, weight=7.672999369772012];
 Treatment -> Churn [origin=learned, weight=4.35131110686202];
-Churn -> Year [origin=learned, weight=171.74048672961422];
-Churn -> Provider [origin=learned, weight=4.44451892371625];
 Churn -> RiskFactor [origin=learned, weight="-0.8348365309567357"];
 }
