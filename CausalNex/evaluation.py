@@ -8,6 +8,9 @@ def placebo_test(bayesian_network_model, bn, data_with_CATE, treatment, outcome,
     df_placebo = data_with_CATE.copy().drop('CATE(1 vs 0)', axis=1)
     df_placebo = df_placebo.drop('CATE(1 vs -1)', axis=1)
     df_placebo = df_placebo.drop('CATE(0 vs -1)', axis=1)
+    df_placebo = df_placebo.drop('Year', axis=1)
+    df_placebo = df_placebo.drop('Provider', axis=1)
+
 
     # break any true causal relationship between treatment and outcome.
     df_placebo[treatment] = np.random.permutation(df_placebo[treatment].values) 
