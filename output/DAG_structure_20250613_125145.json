@@ -1,0 +1,36 @@
+{
+    "Year": [],
+    "Provider": [
+        "Year"
+    ],
+    "Quarter": [
+        "Year",
+        "Provider",
+        "RiskFactor",
+        "Churn"
+    ],
+    "RiskFactor": [
+        "Year",
+        "Provider"
+    ],
+    "Regionality": [
+        "Year",
+        "Provider",
+        "Quarter",
+        "RiskFactor",
+        "Churn"
+    ],
+    "Treatment": [
+        "Year",
+        "Provider",
+        "Quarter",
+        "RiskFactor",
+        "Regionality",
+        "Churn"
+    ],
+    "Churn": [
+        "Year",
+        "Provider",
+        "RiskFactor"
+    ]
+}
