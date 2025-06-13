@@ -296,8 +296,11 @@ class BayesianNetworkModel:
         average_ate = sum(ate.values()) / len(ate)
         return ate, average_ate
     
-    def estimate_cate(self, bn = None, treatment='Treatment', outcome='Churn', treatment_values=None, x=None):
+    def estimate_cate(self, bn = None, treatment='Treatment', outcome='Churn', treatment_values=None, x=None, new_ie=False):
        
+        if new_ie:
+            self.ie = InferenceEngine(bn)
+        
         if self.ie is None:
             # Create inference engine if not already created
             if bn is None:
