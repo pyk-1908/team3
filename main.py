@@ -132,7 +132,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
         bayesian_network_model = BayesianNetworkModel(CausalNex.structure_model)
         train, test = data_loader.split_data(test_size=0.2)
         bayesian_network_model.fit(discretized_dataset, train=train)
-        bayesian_network_model.save_cpds_with_logger(cpds=['Provider','Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
+        bayesian_network_model.save_cpds_with_logger(cpds=['Year', 'Provider','Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
         bayesian_network_model.save_model(model_save_path)
         logger.log("New Bayesian Network model trained and saved.")
     else:
@@ -161,12 +161,12 @@ def run_experiment(is_new_experiment=True, model_path=None):
     # CausalNex.structure_model.remove_node('RiskFactor')
 
 
-    cropped_data_loader = DataLoader()
-    cropped_data_loader.data = data_loader.data.copy().drop('Year', axis=1)
-    cropped_data_loader.data = cropped_data_loader.data.drop('Provider', axis=1)
-    # cropped_data_loader.data = cropped_data_loader.data.drop('Quarter', axis=1)
-    # # cropped_data_loader.data = cropped_data_loader.data.drop('Regionality', axis=1)
-    # cropped_data_loader.data = cropped_data_loader.data.drop('RiskFactor', axis=1)
+    # cropped_data_loader = DataLoader()
+    # cropped_data_loader.data = data_loader.data.copy().drop('Year', axis=1)
+    # cropped_data_loader.data = cropped_data_loader.data.drop('Provider', axis=1)
+    # # cropped_data_loader.data = cropped_data_loader.data.drop('Quarter', axis=1)
+    # # # cropped_data_loader.data = cropped_data_loader.data.drop('Regionality', axis=1)
+    # # cropped_data_loader.data = cropped_data_loader.data.drop('RiskFactor', axis=1)
    
 
     new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
@@ -178,7 +178,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
     logger.log(f"Average Treatment Effect (ATE): {ate_results}, Average ATE: {average_ate}")
 
     # Conditional Average Treatment Effect (CATE)
-    data_with_CATE = cropped_data_loader.add_CATE(bayesian_network_model, bn, treatment='Treatment', outcome='Churn')
+    data_with_CATE = data_loader.add_CATE(bayesian_network_model, bn, treatment='Treatment', outcome='Churn')
 
     # Save the dataset with CATE
     logger.save_dataframe(data_with_CATE, "dataset_with_CATE", format='csv')
