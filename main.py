@@ -73,6 +73,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
     ################# adjusting the structure model #######################
     # Remove edges with smallest weight until the graph is a DAG.
     CausalNex.structure_model.threshold_till_dag()
+    DAG = CausalNex.adjacency_dict()
     print("Structure model adjusted to ensure it is a DAG.")
     logger.log("Structure model adjusted to ensure it is a DAG.")
     
@@ -97,6 +98,9 @@ def run_experiment(is_new_experiment=True, model_path=None):
             "adjusted": True
         }
         logger.save_model_results(adjusted_model_info, "adjusted_model_configuration")
+
+        # save the DAG structure as a JSON file
+        logger.save_model_results(DAG, "DAG_structure")
 
 
     #################### preprocessing for Baysian Network ######################
@@ -190,7 +194,6 @@ def run_experiment(is_new_experiment=True, model_path=None):
 
     model_results = {
         "classification_report": classification_report,
-        "roc": roc,
         "auc": auc,
         "ATE": average_ate,
         "placebo_test": placebo_results,

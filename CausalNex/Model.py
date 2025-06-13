@@ -72,6 +72,23 @@ class CausalNexModel:
         return self
     
 
+    def adjacency_dict(self):
+        """
+        Get the adjacency dictionary of the structure model.
+
+        Returns:
+            dict: Adjacency dictionary of the structure model.
+        """
+        if self.structure_model is None:
+            raise ValueError("No structure model exists. Create one first using create_structure()")
+        
+        adjacency_dict = {}
+        for node, adjacencies in self.structure_model.adjacency():
+            adjacency_dict[node] = list(adjacencies)
+
+        return adjacency_dict
+    
+
 class BayesianNetworkModel:
     def __init__(self, structure_model=None, model_path=None):
         """
