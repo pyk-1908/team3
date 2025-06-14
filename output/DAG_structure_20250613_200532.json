@@ -1,0 +1,21 @@
+{
+    "Quarter": [
+        "RiskFactor",
+        "Churn"
+    ],
+    "RiskFactor": [],
+    "Regionality": [
+        "Quarter",
+        "RiskFactor",
+        "Churn"
+    ],
+    "Treatment": [
+        "Quarter",
+        "RiskFactor",
+        "Regionality",
+        "Churn"
+    ],
+    "Churn": [
+        "RiskFactor"
+    ]
+}
