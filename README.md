@@ -41,6 +41,16 @@ For CausalNex Model
    ```bash
    python3 main.py
    ```
+For CausalML Model
+   ```bash
+         # Install Jupyter if needed
+      pip install jupyter
+
+         # Open and run interactively
+      jupyter notebook CausalMLAdjusted.ipynb
+
+         # Or execute all cells headlessly and save output
+      jupyter nbconvert --to notebook --execute CausalMLAdjusted.ipynb --output CausalMLAdjusted_executed.ipynb
 
 ---
 
