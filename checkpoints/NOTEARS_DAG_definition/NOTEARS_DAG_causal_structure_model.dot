@@ -1,0 +1,17 @@
+strict digraph {
+Quarter;
+RiskFactor;
+Regionality;
+Treatment;
+Churn;
+Quarter -> RiskFactor [origin=learned, weight=18.219246752537217];
+Quarter -> Churn [origin=learned, weight="-2.007977733488897"];
+Regionality -> Quarter [origin=learned, weight=3.7022326974361888];
+Regionality -> RiskFactor [origin=learned, weight=4.359333619484953];
+Regionality -> Churn [origin=learned, weight="-0.8680446151507331"];
+Treatment -> Quarter [origin=learned, weight="-10.79923566470823"];
+Treatment -> RiskFactor [origin=learned, weight="-6.2122042190623"];
+Treatment -> Regionality [origin=learned, weight=7.672999369772012];
+Treatment -> Churn [origin=learned, weight=4.35131110686202];
+Churn -> RiskFactor [origin=learned, weight="-0.8348365309567357"];
+}
