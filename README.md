@@ -45,6 +45,8 @@ For CausalML Model
    ```bash
          # Install Jupyter if needed
       pip install jupyter
+         # Create a symlink so the notebook can access merged_data.csv from the Dataset folder
+      ln -s Dataset/merged_data.csv merged_data.csv
 
          # Open and run interactively
       jupyter notebook CausalMLAdjusted.ipynb
@@ -58,10 +60,15 @@ For CausalML Model
 - **CausalNex/DataLoader.py:**  Loads data from files.
 - **CausalNex/Preprocessing.py:** Handles the preprocessing.
 - **CausalNex/Model.py:** Contain the model.
-- **main.py:** Main loop.
+- **main.py:** Main loop
+
+```
+## Dataset Loading for CausalML model
+- “We placed a ‘merged_data.csv’ shortcut using the (ln -s) command in this folder so the notebook can open the file without any path changes. The actual data lives in Dataset/merged_data.csv.”
+
 
 ---
-
+```
 
 ## Usage for end to end flow
 
