@@ -18,7 +18,7 @@ project-root/
 ├── requirements.txt
 ├── README.md
 └── data/
-        └── df_model.csv  # <–  data file 
+        └── Cate_added_data.csv  # <–  data file 
 
 ---
 
@@ -42,13 +42,13 @@ pip install -r requirements.txt
 ## Data Preparation
 
 - Place your data file in the `data/` directory.
-- The expected filename is `df_model.csv` (you can change this, but see "Changing Data Path" below).
+- The expected filename is `Cate_added_data.csv` (you can change this, but see "Changing Data Path" below).
 - The file should contain the columns described in the Baseline-Churnpred notebook, including:
   - Year, Provider, Quarter, Members, ACR, RiskFactor, Regionality, Members_Lag, Rate_Lag, ChurnRate, Treatment, QuarterInt, ACR_next, treatment, CATE_DR, CATE_XL, Quarter_Since_Start, etc.
 
 **If your file is named differently or located elsewhere:**
 - Edit the line in `main.py`:
-    df = pd.read_csv(‘data/df_model.csv’)
+    df = pd.read_csv(‘data/Cate_added_data.csv’)
 
 and update the path/filename as needed.
 
@@ -124,8 +124,6 @@ Ensure your CSV matches the expected columns and format.
 - **Dependencies?**  
 Run `pip install -r requirements.txt` to install all dependencies.
 
----
-
 
 ---
 
@@ -133,9 +131,4 @@ Run `pip install -r requirements.txt` to install all dependencies.
 
 - open-source Python communities.
 
----
-
-## Contact
-
-For questions or feedback, contact [].
 

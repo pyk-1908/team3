@@ -16,7 +16,7 @@ def main():
     print("\n1. Loading and preprocessing data...")
     
     # Replace 'your_data.csv' with actual data file
-    df = pd.read_csv('df_model (2).csv')  
+    df = pd.read_csv('data/Cate_added_data.csv')  
     X, y = preprocess_data(df)
     
     # Split data
