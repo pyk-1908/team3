@@ -53,7 +53,7 @@ For CausalML Model
       jupyter nbconvert --to notebook --execute CausalMLAdjusted.ipynb --output CausalMLAdjusted_executed.ipynb
 
 ---
-
+```
 ## Structure for Causal Nex analysis
 - **CausalNex/DataLoader.py:**  Loads data from files.
 - **CausalNex/Preprocessing.py:** Handles the preprocessing.
