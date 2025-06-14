@@ -34,9 +34,7 @@ Insurance Funds
 
 ## Usage for end to end flow
 
-1. **Create a virtual environment and use the requirements.txt file in the DoWhy directory**
-
-2. **Follow along the jupyter notebook to complete for end to end flow** 
+1. **Navigate to the ```pipeline``` folder and follow the instructions in there**
 
 ---
 ## Features for end to end flow
@@ -48,6 +46,18 @@ Insurance Funds
 ## Data
 **Dataset Description**
 
+German statutory health insurance data from a major international consulting firm. The data ranges from 2013 to 2025 and was initially delivered in multiple Excel files, each containing a different structure and set of variables. 
+
+***Additional Contribution Rate (ACR) data***
+This dataset contains quarterly values of the additional contribution rates for all German statutory insurers. Insurers closed or inactive during the observation period were removed to ensure time consistency. This dataset includes 94 active providers across the whole period from 2013 to 2025.
+
+***Morbidity Dataset***
+The dataset includes annual morbidity scores and regional classifications at the insurer level. It only includes active insurers and excludes missing values and zero entries, resulting in a final sample of 91 providers. Notably, this data set only begins in 2016 and contains no data from 2013 to 2015.
+
+***Preprocessing and merged data***
+- Can be found under pipeline folder ```pipeline/data/Cate_integrated_data.csv```
+
+
 ---
 
 ## Project status
@@ -57,13 +67,11 @@ Ongoing
 
 ## Citation
 
-1. https://py-why.github.io/dowhy/
-2. https://causalnex.readthedocs.io/en/latest/05_resources/05_faq.html#what-is-causalnex
+1. https://causalnex.readthedocs.io/en/latest/05_resources/05_faq.html#what-is-causalnex
 
 
 ## Acknowledgments
 
-- DoWhy development team for the causal inference framework
 - Microsoft Research and PyWhy organization
 - Healthcare data providers
 - Open source community contributions

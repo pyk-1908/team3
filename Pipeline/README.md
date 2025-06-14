@@ -21,7 +21,11 @@ project-root/
 ├── README.md
 └── data/
     └── Cate_added_data.csv  # <–  data file 
-```
+└── OutputPlots/
+    └──feature_importance_GRADIENT_BOOSTING.png
+    └──feature_importance_RANDOM_FOREST.png
+
+    ```
 ---
 
 ## Setup Instructions
