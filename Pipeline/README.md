@@ -25,7 +25,7 @@ project-root/
     └──feature_importance_GRADIENT_BOOSTING.png
     └──feature_importance_RANDOM_FOREST.png
 
-    ```
+```
 ---
 
 ## Setup Instructions
