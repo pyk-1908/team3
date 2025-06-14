@@ -55,7 +55,7 @@ This dataset contains quarterly values of the additional contribution rates for 
 The dataset includes annual morbidity scores and regional classifications at the insurer level. It only includes active insurers and excludes missing values and zero entries, resulting in a final sample of 91 providers. Notably, this data set only begins in 2016 and contains no data from 2013 to 2015.
 
 ***Preprocessing and merged data***
-- Can be found under pipeline folder ```pipeline/data/Cate_integrated_data.csv```
+- Can be found under pipeline folder ```pipeline/data/Cate_added_data.csv```
 
 
 ---
