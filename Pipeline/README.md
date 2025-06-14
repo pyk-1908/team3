@@ -8,6 +8,8 @@ This project implements a modular, reproducible machine learning pipeline for pr
 
 ## Directory Structure
 
+## Directory Structure
+
 project-root/
 ├── config.py
 ├── preprocessing.py
@@ -18,7 +20,7 @@ project-root/
 ├── requirements.txt
 ├── README.md
 └── data/
-        └── Cate_added_data.csv  # <–  data file 
+    └── Cate_added_data.csv  # <–  data file 
 
 ---
 
