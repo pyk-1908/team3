@@ -2,6 +2,7 @@ from CausalNex.DataLoader import DataLoader
 from CausalNex.Model import CausalNexModel, BayesianNetworkModel
 from CausalNex.Preprocessing import Preprocessing, FeatureDiscretizationAnalyzer
 from CausalNex.Logger import Logger
+from CausalNex.evaluation import placebo_test
 import os
 import argparse
 
@@ -72,6 +73,9 @@ def run_experiment(is_new_experiment=True, model_path=None):
     ################# adjusting the structure model #######################
     # Remove edges with smallest weight until the graph is a DAG.
     CausalNex.structure_model.threshold_till_dag()
+    CausalNex.structure_model.remove_node('Year')
+    CausalNex.structure_model.remove_node('Provider')
+    DAG = CausalNex.adjacency_dict()
     print("Structure model adjusted to ensure it is a DAG.")
     logger.log("Structure model adjusted to ensure it is a DAG.")
     
@@ -97,6 +101,9 @@ def run_experiment(is_new_experiment=True, model_path=None):
         }
         logger.save_model_results(adjusted_model_info, "adjusted_model_configuration")
 
+        # save the DAG structure as a JSON file
+        logger.save_model_results(DAG, "DAG_structure")
+
 
     #################### preprocessing for Baysian Network ######################
     # define the causal variables from the structure model
@@ -120,6 +127,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
 
     data_loader.data = discretized_dataset
 
+
     # Treatment is the treatment variable, and Churn is the outcome variable.
 
 
@@ -127,29 +135,77 @@ def run_experiment(is_new_experiment=True, model_path=None):
     ###################### Learning the Bayesian Network ######################
     if is_new_experiment:
         # Create and train new Bayesian Network model
-        bayesian_network = BayesianNetworkModel(CausalNex.structure_model)
+        bayesian_network_model = BayesianNetworkModel(CausalNex.structure_model)
         train, test = data_loader.split_data(test_size=0.2)
-        bayesian_network.fit(discretized_dataset, train=train)
-        bayesian_network.save_cpds_with_logger(cpds=['Treatment', 'Churn'] ,logger= logger)
-        bayesian_network.save_model(model_save_path)
+        bayesian_network_model.fit(discretized_dataset, train=train)
+        bayesian_network_model.save_cpds_with_logger(cpds=['Quarter', 'RiskFactor', 'Churn', 'Regionality', 'Treatment'] ,logger= logger)
+        bayesian_network_model.save_model(model_save_path)
         logger.log("New Bayesian Network model trained and saved.")
     else:
         # Load existing Bayesian Network model
-        bayesian_network = BayesianNetworkModel(model_path=model_save_path)
+        bayesian_network_model = BayesianNetworkModel(model_path=model_save_path)
         train, test = data_loader.split_data(test_size=0.2)
         logger.log("Existing Bayesian Network model loaded.")
 
     # Evaluate model
-    predictions = bayesian_network.predict(test, 'Churn')
-    classification_report, roc, auc = bayesian_network.classification_report(test, 'Churn')
+    classification_report, roc, auc = bayesian_network_model.classification_report(test, 'Churn')
     
     # Save results if it's a new experiment
     if is_new_experiment:
-        logger.save_model_results(classification_report, "classification_report")
         logger.save_roc_plot(roc, auc, filename="bayesian_network_roc", folder=visualization_folder)
         logger.log(f"Results saved for new experiment. AUC: {auc:.3f}")
     
+    
+    ####################### Do Calculus ########################
+    # Perform do-calculus to estimate the effect of treatment on churn
+    #  First let’s update our model using the complete dataset
+    # removed Year as it has a lot of cpds
+    # CausalNex.structure_model.remove_node('Quarter')
+    # # CausalNex.structure_model.remove_node('Regionality')
+    # CausalNex.structure_model.remove_node('RiskFactor')
+
+
+    # cropped_data_loader = DataLoader()
+    # cropped_data_loader.data = data_loader.data.copy().drop('Year', axis=1)
+    # cropped_data_loader.data = cropped_data_loader.data.drop('Provider', axis=1)
+    # # cropped_data_loader.data = cropped_data_loader.data.drop('Quarter', axis=1)
+    # # # cropped_data_loader.data = cropped_data_loader.data.drop('Regionality', axis=1)
+    # # cropped_data_loader.data = cropped_data_loader.data.drop('RiskFactor', axis=1)
+   
+
+    new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
+    bn = new_bayesian_network.fit_cpds(discretized_dataset)
+
+
+    # Average Treatment Effect (ATE)
+    ate_results, average_ate = bayesian_network_model.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn')
+    logger.log(f"Average Treatment Effect (ATE): {ate_results}, Average ATE: {average_ate}")
+
+    # Conditional Average Treatment Effect (CATE)
+    data_with_CATE = data_loader.add_CATE(bayesian_network_model, bn, treatment='Treatment', outcome='Churn')
+
+    # Save the dataset with CATE
+    logger.save_dataframe(data_with_CATE, "dataset_with_CATE", format='csv')
+
+    # Perform placebo test
+    placebo_results = placebo_test(bayesian_network_model= bayesian_network_model, bn = new_bayesian_network, data_with_CATE=data_with_CATE,
+                                                        treatment='Treatment', outcome='Churn', logger=logger, save=is_new_experiment)
+
+
+    model_results = {
+        "classification_report": classification_report,
+        "auc": auc,
+        "ATE": average_ate,
+        "placebo_test": placebo_results,
+    }
+    if is_new_experiment:
+        logger.save_model_results(model_results, "model_results")
+        logger.log("all model_results saved.")
+    
     return classification_report, roc, auc
+
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Run causal analysis experiment')
@@ -166,4 +222,7 @@ if __name__ == '__main__':
     )
     print(f"Experiment completed. Final AUC: {auc:.3f}")
 
+    # Create necessary directories
+    for directory in [visualization_folder, NOTEARS_checkpoint_folder, 'models']:
+        os.makedirs(directory, exist_ok=True)
 

@@ -13,6 +13,7 @@ class Logger:
             output_dir (str): Directory where outputs will be saved
         """
         self.output_dir = output_dir
+        self.visualization_folder = 'visualizations'
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._create_output_dir()
         self.log_file = os.path.join(self.output_dir, f"log_{self.timestamp}.txt")
@@ -104,4 +105,20 @@ class Logger:
             
         except Exception as e:
             self.log(f"Error saving ROC plot: {str(e)}")
+            raise
+
+    def save_figure(self, fig, filename: str):
+        """
+        Save a matplotlib figure.
+        
+        Args:
+            fig (matplotlib.figure.Figure): Figure to save
+            filename (str): Name for the output file
+        """
+        try:
+            output_path = os.path.join(self.visualization_folder, f"{filename}_{self.timestamp}.png")
+            fig.savefig(output_path)
+            self.log(f"Figure saved to {output_path}")
+        except Exception as e:
+            self.log(f"Error saving figure: {str(e)}")
             raise

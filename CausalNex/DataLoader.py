@@ -123,3 +123,16 @@ class DataLoader:
         self.data['Treatment'] = self.data['Treatment'].map(Treatment_mapping)
 
 
+    def add_CATE(self, bayesian_network_model, bn ,treatment='Treatment', outcome='Churn'):
+        for _ , row in self.data.iterrows():
+            # Extract observed covariates (excluding treatment and outcome)
+            x = row.drop([treatment, outcome]).to_dict()
+            cate_results = bayesian_network_model.estimate_cate(bn=bn, treatment=treatment, outcome=outcome, x=x)
+            # Add CATE results to the DataFrame
+            self.data.at[row.name, 'CATE(1 vs 0)'] = cate_results['CATE(1 vs 0)']
+            self.data.at[row.name, 'CATE(1 vs -1)'] = cate_results['CATE(1 vs -1)']
+            self.data.at[row.name, 'CATE(0 vs -1)'] = cate_results['CATE(0 vs -1)']
+             
+        return self.data
+
+

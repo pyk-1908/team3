@@ -4,6 +4,7 @@ from causalnex.plots import plot_structure, NODE_STYLE, EDGE_STYLE
 import networkx as nx
 from causalnex.network import BayesianNetwork
 from causalnex.evaluation import classification_report, roc_auc
+from causalnex.inference import InferenceEngine
 import pandas as pd
 import os
 import pickle
@@ -71,6 +72,23 @@ class CausalNexModel:
         return self
     
 
+    def adjacency_dict(self):
+        """
+        Get the adjacency dictionary of the structure model.
+
+        Returns:
+            dict: Adjacency dictionary of the structure model.
+        """
+        if self.structure_model is None:
+            raise ValueError("No structure model exists. Create one first using create_structure()")
+        
+        adjacency_dict = {}
+        for node, adjacencies in self.structure_model.adjacency():
+            adjacency_dict[node] = list(adjacencies)
+
+        return adjacency_dict
+    
+
 class BayesianNetworkModel:
     def __init__(self, structure_model=None, model_path=None):
         """
@@ -84,6 +102,8 @@ class BayesianNetworkModel:
             self.load_model(model_path)
         else:
             self.bayesian_network = BayesianNetwork(structure_model) if structure_model else None
+
+        self.ie = None  # Inference Engine instance
 
     def fit(self, df, train):
         """
@@ -102,6 +122,23 @@ class BayesianNetworkModel:
         self.bayesian_network.fit_node_states(df) # need to earn all the possible states of the nodes using the whole dataset
         self.bayesian_network.fit_cpds(train, method="BayesianEstimator", bayes_prior="K2")
         return self
+    
+    def fit_cpds(self, df):
+        """
+        Fit the Conditional Probability Distributions (CPDs) of the Bayesian Network.
+
+        Args:
+            df (pd.DataFrame): DataFrame containing the data to fit CPDs.
+
+        Returns:
+            self: Returns the instance for method chaining
+        """
+        if self.bayesian_network is None:
+            raise ValueError("No Bayesian Network structure defined. Create one first.")
+        
+        bn = self.bayesian_network.fit_node_states_and_cpds(df, method="BayesianEstimator", bayes_prior="K2")
+        return bn
+
     
     def predict(self, test_df, target:str=None):
         """
@@ -142,7 +179,7 @@ class BayesianNetworkModel:
         try:
             for cpd in cpds:
                 cpd_df = self.get_cpd(cpd)
-                filename = f"{file_name_base}_{cpd}.csv"
+                filename = f"{file_name_base}_{cpd}"
                 # Save the DataFrame using the logger
                 logger.save_dataframe(cpd_df, filename, format='csv')
                 logger.log(f"Successfully saved CPDs to {filename}")
@@ -202,3 +239,112 @@ class BayesianNetworkModel:
         with open(filepath, 'rb') as f:
             self.bayesian_network = pickle.load(f)
         return self
+    
+    def estimate_ate(self, bn = None, treatment='Treatment', outcome='Churn', treatment_values=None):
+        """
+        Estimate the Average Treatment Effect (ATE) using the Bayesian Network for all pairs of treatment values.
+        
+        Args:
+            treatment (str): The treatment variable
+            outcome (str): The outcome variable
+            treatment_values (list): List of possible treatment values. If None, uses [-1, 0, 1]
+        
+        Returns:
+            tuple: (Dictionary of ATE comparisons between treatment value pairs, average ATE)
+        """
+        if bn is None and self.bayesian_network is None: 
+            raise ValueError("No Bayesian Network model defined.")
+        
+
+        # Default treatment values if none provided
+        if treatment_values is None:
+            treatment_values = [-1, 0, 1]
+        
+        if self.ie is None:
+            # Create inference engine if not already created
+            if bn is None:
+                self.ie = InferenceEngine(self.bayesian_network)
+            else:
+                self.ie = InferenceEngine(bn)
+      
+        expected_outcomes = {}
+        for t in treatment_values:
+            # Perform intervention for the treatment value
+            self.ie.do_intervention(treatment, t)
+            
+            # Query the outcome variable
+            outcome_probabilities = self.ie.query({})[outcome]
+            
+            # Reset intervention
+            self.ie.reset_do(treatment)
+            
+            # Calculate expected outcome
+            expected_outcome = sum([p * v for v, p in outcome_probabilities.items()])
+            
+            # Store expected outcome for this treatment value
+            expected_outcomes[t] = expected_outcome
+        # Compute pairwise ATEs
+        ate = {
+            "E[Y|do(T=-1)]": expected_outcomes[-1],
+            "E[Y|do(T=0)]": expected_outcomes[0],
+            "E[Y|do(T=1)]": expected_outcomes[1],
+            "ATE(1 vs 0)": expected_outcomes[1] - expected_outcomes[0],
+            "ATE(1 vs -1)": expected_outcomes[1] - expected_outcomes[-1],
+            "ATE(0 vs -1)": expected_outcomes[0] - expected_outcomes[-1],
+        }
+        # Calculate average ATE
+        average_ate = sum(ate.values()) / len(ate)
+        return ate, average_ate
+    
+    def estimate_cate(self, bn = None, treatment='Treatment', outcome='Churn', treatment_values=None, x=None, new_ie=False):
+       
+        if new_ie:
+            self.ie = InferenceEngine(bn)
+        
+        if self.ie is None:
+            # Create inference engine if not already created
+            if bn is None:
+                self.ie = InferenceEngine(self.bayesian_network)
+            else:
+                self.ie = InferenceEngine(bn)
+        
+
+        expected_outcomes = {}
+       
+        # Default treatment values if none provided
+        if treatment_values is None:
+            treatment_values = [-1, 0, 1]
+        
+        for t in treatment_values:
+            # Perform intervention for the treatment value
+            self.ie.do_intervention(treatment, t)
+            
+            # Query the outcome variable
+            outcome_probabilities = self.ie.query(x)[outcome]
+            
+            # Reset intervention
+            self.ie.reset_do(treatment)
+            
+            # Calculate expected outcome
+            expected_outcome = sum([p * v for v, p in outcome_probabilities.items()])
+            
+            # Store expected outcome for this treatment value
+            expected_outcomes[t] = expected_outcome
+
+            # reset intervention
+            self.ie.reset_do(treatment)
+
+        # Compute pairwise CATEs
+        cate_row = {
+        "E[Y|do(T=-1)]": expected_outcomes[-1],
+        "E[Y|do(T=0)]": expected_outcomes[0],
+        "E[Y|do(T=1)]": expected_outcomes[1],
+        "CATE(1 vs 0)": expected_outcomes[1] - expected_outcomes[0],
+        "CATE(1 vs -1)": expected_outcomes[1] - expected_outcomes[-1],
+        "CATE(0 vs -1)": expected_outcomes[0] - expected_outcomes[-1],
+        }
+
+        return cate_row
+
+
+        
