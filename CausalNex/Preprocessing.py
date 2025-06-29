@@ -388,6 +388,35 @@ class Preprocessing:
         df_copy["Churn"] = df_copy["ChurnRate"].apply(lambda x: 1 if x > 0 else 0)
         return df_copy.drop(columns=["ChurnRate", "Members", "Members_Lag"])
 
+    
+    def calculate_other_provider_avg_acr(self, df):
+        # Create a copy to avoid modifying the original
+        df_copy = df.copy()
+
+        # Create a multi-index group (Year, Quarter)
+        group = df_copy.groupby(['Year', 'Quarter'])
+
+        # Compute total ACR sum and count per (Year, Quarter)
+        total_acr = group['ACR'].transform('sum')
+        count = group['ACR'].transform('count')
+
+        # Compute the sum and count for each (Year, Quarter, Provider)
+        df_copy['provider_acr_sum'] = df_copy.groupby(['Year', 'Quarter', 'Provider'])['ACR'].transform('sum')
+        df_copy['provider_count'] = df_copy.groupby(['Year', 'Quarter', 'Provider'])['ACR'].transform('count')
+
+        # Calculate average ACR of *other* providers in the same quarter
+        df_copy['Avg_ACR_Other_Providers'] = (
+            (total_acr - df_copy['provider_acr_sum']) / (count - df_copy['provider_count'])
+        )
+
+        # Drop helper columns
+        df_copy.drop(columns=['provider_acr_sum', 'provider_count'], inplace=True)
+
+        return df_copy
+
+
+    
     def get_label_encoders(self):
         """Get the dictionary of label encoders used in encoding."""
         return self.label_encoders
+    

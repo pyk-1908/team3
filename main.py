@@ -6,7 +6,7 @@ from CausalNex.evaluation import placebo_test
 import os
 import argparse
 
-def run_experiment(is_new_experiment=True, model_path=None):
+def run_experiment(is_new_experiment=True, is_classification=False, model_path=None):
     """
     Run the causal analysis experiment.
     
@@ -40,6 +40,9 @@ def run_experiment(is_new_experiment=True, model_path=None):
 
     preprocessor = Preprocessing(logger=logger)
 
+    # add average ACR variable
+    merged_dataset = preprocessor.calculate_other_provider_avg_acr(merged_dataset)
+
     # add negative Treatment variable
     # drop Rate_Lag and ACR columns as we will depend only on Treatment increase, decrease, or no change
     merged_dataset = preprocessor.calculate_treatment(merged_dataset)
@@ -47,6 +50,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
     # add churn variable
     # drop Members and Members_Lag columns as we will depend only on Chrun existence or not
     merged_dataset = preprocessor.calculate_churn(merged_dataset)
+
 
     # learn the network structure automatically from the data using the NOTEARS algorithm. 
     # (NOTEARS is a recently published algorithm for learning DAGs from data, framed as a continuous optimisation problem. It allowed us to overcome the challenges of combinatorial optimisation, giving a new impetus to the usage of BNs in machine learning applications.)
@@ -121,6 +125,7 @@ def run_experiment(is_new_experiment=True, model_path=None):
     # config ( other features do not need discretization)
     discretization_config = {
         'RiskFactor': {'method': 'equal_width', 'n_bins': 20},
+        'Avg_ACR_Other_Providers': {'method': 'equal_frequency', 'n_bins': 18},
     }
     # Discretize the dataset
     discretized_dataset = preprocessor.batch_discretize(data, discretization_config)
@@ -171,25 +176,27 @@ def run_experiment(is_new_experiment=True, model_path=None):
     # # cropped_data_loader.data = cropped_data_loader.data.drop('Quarter', axis=1)
     # # # cropped_data_loader.data = cropped_data_loader.data.drop('Regionality', axis=1)
     # # cropped_data_loader.data = cropped_data_loader.data.drop('RiskFactor', axis=1)
-   
+    average_ate = None
+    placebo_results = None
+    if not is_classification:
 
-    new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
-    bn = new_bayesian_network.fit_cpds(discretized_dataset)
+        new_bayesian_network = BayesianNetworkModel(structure_model=CausalNex.structure_model)
+        bn = new_bayesian_network.fit_cpds(discretized_dataset)
 
 
-    # Average Treatment Effect (ATE)
-    ate_results, average_ate = bayesian_network_model.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn')
-    logger.log(f"Average Treatment Effect (ATE): {ate_results}, Average ATE: {average_ate}")
+        # Average Treatment Effect (ATE)
+        ate_results, average_ate = bayesian_network_model.estimate_ate(bn=bn, treatment='Treatment', outcome='Churn')
+        logger.log(f"Average Treatment Effect (ATE): {ate_results}, Average ATE: {average_ate}")
 
-    # Conditional Average Treatment Effect (CATE)
-    data_with_CATE = data_loader.add_CATE(bayesian_network_model, bn, treatment='Treatment', outcome='Churn')
+        # Conditional Average Treatment Effect (CATE)
+        data_with_CATE = data_loader.add_CATE(bayesian_network_model, bn, treatment='Treatment', outcome='Churn')
 
-    # Save the dataset with CATE
-    logger.save_dataframe(data_with_CATE, "dataset_with_CATE", format='csv')
+        # Save the dataset with CATE
+        logger.save_dataframe(data_with_CATE, "dataset_with_CATE", format='csv')
 
-    # Perform placebo test
-    placebo_results = placebo_test(bayesian_network_model= bayesian_network_model, bn = new_bayesian_network, data_with_CATE=data_with_CATE,
-                                                        treatment='Treatment', outcome='Churn', logger=logger, save=is_new_experiment)
+        # Perform placebo test
+        placebo_results = placebo_test(bayesian_network_model= bayesian_network_model, bn = new_bayesian_network, data_with_CATE=data_with_CATE,
+                                                            treatment='Treatment', outcome='Churn', logger=logger, save=is_new_experiment)
 
 
     model_results = {
@@ -213,16 +220,15 @@ if __name__ == '__main__':
                       help='If set, train and save new models. Otherwise, load existing ones.')
     parser.add_argument('--model-path', type=str, default=None,
                       help='Path to saved model for loading (ignored if --new-experiment is set)')
+    parser.add_argument('--classification-experiment', action='store_true', default=False,
+                      help='If set, execute the classification experiment.')
     
     args = parser.parse_args()
     
     report, roc, auc = run_experiment(
         is_new_experiment=args.new_experiment,
+        is_classification=args.classification_experiment,
         model_path=args.model_path
     )
     print(f"Experiment completed. Final AUC: {auc:.3f}")
-
-    # Create necessary directories
-    for directory in [visualization_folder, NOTEARS_checkpoint_folder, 'models']:
-        os.makedirs(directory, exist_ok=True)
 

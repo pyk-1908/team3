@@ -1,0 +1,27 @@
+{
+    "Quarter": [
+        "Regionality",
+        "Avg_ACR_Other_Providers"
+    ],
+    "RiskFactor": [
+        "Quarter",
+        "Regionality",
+        "Avg_ACR_Other_Providers"
+    ],
+    "Regionality": [],
+    "Treatment": [
+        "Quarter",
+        "Regionality",
+        "Avg_ACR_Other_Providers"
+    ],
+    "Avg_ACR_Other_Providers": [
+        "Regionality"
+    ],
+    "Churn": [
+        "Quarter",
+        "RiskFactor",
+        "Regionality",
+        "Treatment",
+        "Avg_ACR_Other_Providers"
+    ]
+}
