@@ -266,87 +266,183 @@ class Preprocessing:
         """
         self.logger = logger
         self.label_encoders = {}
+        self.discretizers = {}  # Store fitted discretizers
+        self.discretization_configs = {}  # Store discretization configurations
 
-    def label_encode_non_numeric(self, df):
+    def fit_label_encode_non_numeric(self, df):
         """
-        Label encodes all non-numeric columns in the given DataFrame.
-
+        Fit label encoders on all non-numeric columns in the given DataFrame.
         Args:
-            df (pd.DataFrame): Input DataFrame.
-
+            df (pd.DataFrame): Training DataFrame.
         Returns:
-            tuple: (DataFrame with non-numeric columns label encoded, dictionary of label encoders)
+            self: Returns self for method chaining
         """
-        df_encoded = df.copy()
         
         # Get non-numeric columns using numpy
         non_numeric_columns = list(df.select_dtypes(exclude=[np.number]).columns)
         
         for col in non_numeric_columns:
             le = LabelEncoder()
-            df_encoded[col] = le.fit_transform(df_encoded[col].astype(str))
+            le.fit(df[col].astype(str))
             self.label_encoders[col] = le
             
-        return df_encoded, self.label_encoders
+        return self
 
-    def discretize_feature(self, data, feature, method='equal_width', n_bins=5, custom_bins=None):
+    def transform_label_encode_non_numeric(self, df):
         """
-        Discretize a single feature using specified method
+        Transform non-numeric columns using fitted label encoders.
+        Args:
+            df (pd.DataFrame): DataFrame to transform.
+        Returns:
+            pd.DataFrame: DataFrame with non-numeric columns label encoded
+        """
+        df_encoded = df.copy()
+        
+        for col, encoder in self.label_encoders.items():
+            if col in df_encoded.columns:
+                # Handle unseen categories by replacing with a default value
+                try:
+                    df_encoded[col] = encoder.transform(df_encoded[col].astype(str))
+                except ValueError as e:
+                    if "unseen labels" in str(e):
+                        # Handle unseen categories
+                        if self.logger:
+                            self.logger.log(f"Warning: Unseen categories in column '{col}'. Using most frequent category.")
+                        # Replace unseen categories with the most frequent one from training
+                        most_frequent = encoder.classes_[0]  # First class is often most frequent
+                        df_temp = df_encoded[col].astype(str).copy()
+                        mask = ~df_temp.isin(encoder.classes_)
+                        df_temp[mask] = most_frequent
+                        df_encoded[col] = encoder.transform(df_temp)
+                    else:
+                        raise e
+                        
+        return df_encoded
+    
+    def fit_transform_label_encode_non_numeric(self, df):
+        """
+        Fit and transform non-numeric columns using label encoding.
         
         Args:
-            data (pd.DataFrame): Input dataset
+            df (pd.DataFrame): DataFrame to fit and transform.
+        
+        Returns:
+            pd.DataFrame: DataFrame with non-numeric columns label encoded
+        """
+        self.fit_label_encode_non_numeric(df)
+        return self.transform_label_encode_non_numeric(df)
+
+    def fit_discretize_feature(self, data, feature, method='equal_width', n_bins=5, custom_bins=None):
+        """
+        Fit discretizer for a single feature
+        Args:
+            data (pd.DataFrame): Training dataset
             feature (str): Feature name to discretize
             method (str): 'equal_width', 'equal_frequency', 'kmeans', or 'custom'
             n_bins (int): Number of bins
             custom_bins (list): Custom bin edges for 'custom' method
+        Returns:
+            self: Returns self for method chaining
+        """
+        config = {
+            'method': method,
+            'n_bins': n_bins,
+            'custom_bins': custom_bins
+        }
+        self.discretization_configs[feature] = config
         
+        if method == 'equal_width':
+            # Store bin edges for equal width
+            _, bin_edges = pd.cut(data[feature], bins=n_bins, labels=False, retbins=True)
+            self.discretizers[feature] = {'type': 'equal_width', 'bin_edges': bin_edges}
+            
+        elif method == 'equal_frequency':
+            # Store quantile edges for equal frequency
+            _, bin_edges = pd.qcut(data[feature], q=n_bins, labels=False, duplicates='drop', retbins=True)
+            self.discretizers[feature] = {'type': 'equal_frequency', 'bin_edges': bin_edges}
+            
+        elif method == 'kmeans':
+            # Fit KBinsDiscretizer
+            discretizer = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='kmeans')
+            discretizer.fit(data[feature].values.reshape(-1, 1))
+            self.discretizers[feature] = {'type': 'kmeans', 'discretizer': discretizer}
+            
+        elif method == 'custom' and custom_bins:
+            # Store custom bin edges
+            self.discretizers[feature] = {'type': 'custom', 'bin_edges': custom_bins}
+            
+        else:
+            raise ValueError("Invalid method or missing custom_bins")
+            
+        return self
+
+    def transform_discretize_feature(self, data, feature):
+        """
+        Transform a single feature using fitted discretizer
+        Args:
+            data (pd.DataFrame): Dataset to transform
+            feature (str): Feature name to discretize
         Returns:
             pd.Series: Discretized feature
         """
-        if method == 'equal_width':
-            return pd.cut(data[feature], bins=n_bins, labels=False)
+        if feature not in self.discretizers:
+            raise ValueError(f"Feature '{feature}' has not been fitted. Call fit_discretize_feature first.")
+            
+        discretizer_info = self.discretizers[feature]
         
-        elif method == 'equal_frequency':
-            return pd.qcut(data[feature], q=n_bins, labels=False, duplicates='drop')
-        
-        elif method == 'kmeans':
-            discretizer = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='kmeans')
-            return discretizer.fit_transform(data[feature].values.reshape(-1, 1)).flatten()
-        
-        elif method == 'custom' and custom_bins:
-            return pd.cut(data[feature], bins=custom_bins, labels=False)
-        
-        else:
-            raise ValueError("Invalid method or missing custom_bins")
-
-    def batch_discretize(self, data, features_config):
+        if discretizer_info['type'] in ['equal_width', 'equal_frequency', 'custom']:
+            return pd.cut(data[feature], bins=discretizer_info['bin_edges'], labels=False, include_lowest=True)
+            
+        elif discretizer_info['type'] == 'kmeans':
+            return discretizer_info['discretizer'].transform(data[feature].values.reshape(-1, 1)).flatten()
+    
+    def fit_batch_discretize(self, data, features_config):
         """
-        Discretize multiple features at once by overwriting original features.
-        
+        Fit discretizers for multiple features at once.
         Args:
-            data (pd.DataFrame): Input dataset
+            data (pd.DataFrame): Training dataset
             features_config (dict): Configuration for each feature
-                Example: {
-                    'feature1': {'method': 'equal_width', 'n_bins': 5},
-                    'feature2': {'method': 'equal_frequency', 'n_bins': 3},
-                    'feature3': {'method': 'custom', 'custom_bins': [0, 10, 50, 100]}
-                }
-        
+        Returns:
+            self: Returns self for method chaining
+        """
+        for feature, config in features_config.items():
+            if feature in data.columns:
+                self.fit_discretize_feature(data, feature, **config)
+                if self.logger:
+                    self.logger.log(f"Fitted discretizer for feature '{feature}' using method '{config.get('method', 'equal_width')}'")
+        return self
+    
+    def transform_batch_discretize(self, data):
+        """
+        Transform multiple features using fitted discretizers.
+        Args:
+            data (pd.DataFrame): Dataset to transform
         Returns:
             pd.DataFrame: Dataset with discretized features
         """
         result_data = data.copy()
         
-        for feature, config in features_config.items():
+        for feature in self.discretizers.keys():
             if feature in data.columns:
-                # Directly overwrite the original feature
-                result_data[feature] = self.discretize_feature(
-                    data, feature, **config
-                )
+                result_data[feature] = self.transform_discretize_feature(data, feature)
                 if self.logger:
-                    self.logger.log(f"Discretized feature '{feature}' using method '{config.get('method', 'equal_width')}'")
-        
+                    config = self.discretization_configs.get(feature, {})
+                    self.logger.log(f"Transformed feature '{feature}' using method '{config.get('method', 'unknown')}'")
+                    
         return result_data
+    
+    def fit_transform_batch_discretize(self, data, features_config):
+        """
+        Fit and transform multiple features in one step.
+        Args:
+            data (pd.DataFrame): Training dataset
+            features_config (dict): Configuration for each feature
+        Returns:
+            pd.DataFrame: Dataset with discretized features
+        """
+        self.fit_batch_discretize(data, features_config)
+        return self.transform_batch_discretize(data)
+    
 
     def calculate_treatment(self, df):
         """

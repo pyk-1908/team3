@@ -83,7 +83,7 @@ class DataLoader:
         self.data = result
         return self
 
-    def split_data(self, test_size=0.2):
+    def split_data(self, test_size=0.2,random_state=42):
         """
         Split the data into training and testing sets.
         
@@ -96,7 +96,7 @@ class DataLoader:
         if self.data is None:
             raise ValueError("No data loaded. Call load_data first.")
             
-        return train_test_split(self.data, test_size=test_size, random_state=42)
+        return train_test_split(self.data, test_size=test_size, random_state=random_state)
 
     def get_data(self):
         """

@@ -62,7 +62,7 @@ class Logger:
         if format.lower() == 'csv':
             df.to_csv(f"{output_path}.csv", index=False)
         elif format.lower() == 'excel':
-            df.to_excel(f"{output_path}.xlsx", index=False)
+            df.to_excel(f"{output_path}.xlsx", index=True, engine='openpyxl')
         else:
             raise ValueError("Unsupported format. Use 'csv' or 'excel'")
     
