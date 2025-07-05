@@ -75,3 +75,5 @@ jupyter
 causalml
 numpy
 pandas
+streamlit
+altair
