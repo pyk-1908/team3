@@ -4,3 +4,5 @@ backgroundColor = "#f7f7f7"
 secondaryBackgroundColor = "#DCF9E3"
 textColor = "#262730"
 font = "sans serif"
+[server]
+pythonVersion = "3.10"
