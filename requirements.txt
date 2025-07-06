@@ -1,5 +1,6 @@
 # Requires: Python >=3.8,<3.10
 
+cython>=0.28.0
 appnope==0.1.4
 asttokens==3.0.0
 causalnex==0.12.1
