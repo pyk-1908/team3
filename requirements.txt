@@ -72,9 +72,10 @@ xlrd
 nbconvert
 nbformat
 jupyter
-causalml
+Pillow
+Cython>=0.29.33
+causalml==0.15.4
 numpy
 pandas
 streamlit
 altair
-Pillow
