@@ -115,7 +115,7 @@ Ongoing
 
 ## INTERACTIVE WEB DASHBOARD
 
-- To start up the web dashboard, download the ***WebUI_final.ipynb*** file and upload this notebook on Google Colab
+- To start up the web dashboard, download the ***WebUIFinal_final.ipynb*** file and upload this notebook on Google Colab
 - The web UI has been hosted using locally using **ngork**. To use the webUI you will need to create an ngrok account linked with your github. Once the account is created on the ngrok website -> Sign In -> copy your authtoken -> and paste it in the ipynb notebook where its indicated (scroll down on the notebook, to find the the place to paste your authtoken)
 - Now from the top of google colab, click on Run on cells, you will be provided with a link, in the next cell where you pasted your authoken, to the WebUI that has been launched on your machine. 
 
